@@ -130,3 +130,7 @@ dmypy.json
 
 # don't commit data
 data/
+
+*.code-workspace
+*.db
+*.db-journal
