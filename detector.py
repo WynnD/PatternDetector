@@ -10,6 +10,7 @@ import sys
 import os
 
 from stocklist import NasdaqController
+from db import DetectorDatabase
 
 class OutsideDayDetector:
     def __init__(self, patterns):
@@ -18,7 +19,8 @@ class OutsideDayDetector:
         self.data = {}
         self.output = {}
 
-        StocksController = NasdaqController(True)
+        self.db = DetectorDatabase()
+        StocksController = NasdaqController(self.db)
         self.tickers = StocksController.getList()
 
     ''' for stock in list of stocks, get trading range (open to close) for two days ago and one day ago. 
@@ -85,18 +87,12 @@ class OutsideDayDetector:
         pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
         num_analyzed = 0
         for ticker in self.tickers:
-            # if num_analyzed % 500 == 0:
-                # print(f"Analyzed {num_analyzed}/{len(self.tickers)} tickers...")
-            try:
-                sys.stdout = open(os.devnull, "w")
-                data = yf.download(ticker, pastDate, currentDate)
-                sys.stdout = sys.__stdout__
-                num_analyzed += 1
-                if not data.empty:
-                    self.data[ticker] = data
-                    outsideDayData = self.detectOutsideDay(ticker)
-                    if outsideDayData:
-                        self.printData(outsideDayData)
+            self.
+            if not data.empty:
+                self.db.insertTickerData(ticker, data)
+                outsideDayData = self.detectOutsideDay(ticker)
+                if outsideDayData:
+                    self.printData(outsideDayData)
             except:
                 continue
 
@@ -123,6 +119,7 @@ class OutsideDayDetector:
                 data = yf.download(ticker, pastDate, currentDate)
                 sys.stdout = sys.__stdout__
                 if not data.empty:
+                    self.db.insertTickerData(ticker, data)
                     self.data[ticker] = data
             except:
                 print(f"Could not download data for ticker '{ticker}'")
