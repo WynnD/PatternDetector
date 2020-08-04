@@ -31,7 +31,7 @@ class OutsideDayDetector:
 
     '''
 
-    def detectOutsideDay(self, ticker, relativeVolThreshold=2):
+    def detectOutsideDay(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
         closePrice2DaysAgo = self.getClosingPriceNDaysAgo(ticker, days=1)
         closePriceYesterday = self.getClosingPriceNDaysAgo(ticker, days=0)
         openPrice2DaysAgo = self.getOpeningPriceNDaysAgo(ticker, days=1)
@@ -45,7 +45,7 @@ class OutsideDayDetector:
             avgVolume = self.getAverageVolume(ticker)
             volume = self.getVolumeNDaysAgo(ticker, 0)
             relativeVol = volume / avgVolume
-            if relativeVol > relativeVolThreshold:
+            if relativeVol > relativeVolThreshold and avgVolume > volumeThreshold:
                 return {
                     'ticker': ticker,
                     'percent_change': percentChangeYesterday,
@@ -78,11 +78,13 @@ class OutsideDayDetector:
     def getClosingPriceNDaysAgo(self, ticker, days):
         return self.data[ticker]['Close'][-days-1]
 
-    def getDataDetectAndPrint(self):
+    def getDataDetectAndPrint(self, includeToday=False):
         print('Getting all ticker data')
         currentDate = datetime.datetime.strptime(
             date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
         pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
+        if includeToday:
+            currentDate = currentDate + dateutil.relativedelta.relativedelta(days=1)
         num_analyzed = 0
         for ticker in self.tickers:
             # if num_analyzed % 500 == 0:
