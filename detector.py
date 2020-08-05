@@ -124,9 +124,7 @@ class OutsideDayDetector:
         if self.marketsAreClosed():
             currentDate = currentDate + dateutil.relativedelta.relativedelta(days=1)
         num_analyzed = 0
-        for ticker in self.tickers:
-            # if num_analyzed % 500 == 0:
-                # print(f"Analyzed {num_analyzed}/{len(self.tickers)} tickers...")
+        for ticker in tqdm(self.tickers):
             sys.stdout = open(os.devnull, "w")
             data = yf.download(ticker, pastDate, currentDate)
             sys.stdout = sys.__stdout__
@@ -137,7 +135,6 @@ class OutsideDayDetector:
                 engulfingCandleData = self.detectEngulfingCandles(ticker)
                 if outsideDayData:
                     self.insertResult('Outside Day', ticker, outsideDayData)
-                    self.printData(outsideDayData)
                 elif engulfingCandleData:
                     self.insertResult('Engulfing Candle', ticker, engulfingCandleData)
         
