@@ -124,11 +124,16 @@ class OutsideDayDetector:
         if self.marketsAreClosed():
             currentDate = currentDate + dateutil.relativedelta.relativedelta(days=1)
         num_analyzed = 0
+        num_failed = 0
         for ticker in tqdm(self.tickers):
-            sys.stdout = open(os.devnull, "w")
-            data = yf.download(ticker, pastDate, currentDate)
-            sys.stdout = sys.__stdout__
-            num_analyzed += 1
+            try:
+                num_analyzed += 1
+                sys.stdout = open(os.devnull, "w")
+                data = yf.download(ticker, pastDate, currentDate)
+                sys.stdout = sys.__stdout__
+            except:
+                num_failed += 1
+                continue
             if not data.empty and len(data) > 1:
                 self.data[ticker] = data
                 outsideDayData = self.detectOutsideDay(ticker)
@@ -138,6 +143,8 @@ class OutsideDayDetector:
                 elif engulfingCandleData:
                     self.insertResult('Engulfing Candle', ticker, engulfingCandleData)
         
+        print(f"{num_analyzed} tickers analyzed with {num_failed} failures")
+
         self.printAllData()
 
     def marketsAreClosed(self):
