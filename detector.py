@@ -130,7 +130,7 @@ class OutsideDayDetector:
             try:
                 num_analyzed += 1
                 sys.stdout = open(os.devnull, "w")
-                data = yf.Ticker(ticker).history(period="1mo")
+                data = yf.Ticker(ticker).history(period="2d")
                 sys.stdout = sys.__stdout__
             except:
                 num_failed += 1
@@ -155,11 +155,11 @@ class OutsideDayDetector:
         day = now.weekday()
         hour = now.hour
         minute = now.minute
-        if day > 4:
+        if day > 4: # is weekend
             return True
         elif hour < 8 or (hour == 8 and minute < 30) or hour > 14: # is earlier than 8:30am or is later than 3pm
             return True
-        else:
+        else: # weekday but markets are closed
             return False
 
     def insertResult(self, pattern, ticker, data):
