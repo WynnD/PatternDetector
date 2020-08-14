@@ -28,7 +28,6 @@ class OutsideDayDetector:
         parser.add_argument('from_email', help='email address to send from')
         parser.add_argument('--patterns', nargs='*', help='patterns to analyze')
         args = parser.parse_args()
-        print(args)
         self.to_email = args.to_email
         self.from_email = args.from_email
         if args.patterns:
