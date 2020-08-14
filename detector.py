@@ -218,7 +218,7 @@ RelativeVol: {data['relative_vol']:.2f}
         email = MIMEText(self.outputString)
 
         email['Subject'] = 'Pattern Detector Report'
-        email['From'] = self.from_email
+        email['From'] = f'Pattern Detector <{self.from_email}>'
         email['To'] = self.to_email
 
         password_file = open('app_pass.txt', 'r')
