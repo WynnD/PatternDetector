@@ -57,11 +57,13 @@ class OutsideDayDetector:
 
     def detectEngulfingCandles(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
         percentChangeYesterday = self.getPercentChangeNDaysAgo(ticker, days=0)
-
         isEngulfingCandle = self.isEngulfingCandle(ticker)
-
+        
         if isEngulfingCandle:
-            avgVolume = self.getAverageVolume(ticker)
+            try:
+                avgVolume = self.getAverageVolume(ticker)
+            except:
+                return False
             volume = self.getVolumeNDaysAgo(ticker, 0)
             relativeVol = volume / avgVolume
             if relativeVol > relativeVolThreshold and avgVolume > volumeThreshold:
@@ -103,7 +105,7 @@ class OutsideDayDetector:
         return ((dayClose-dayBeforeClose)/dayBeforeClose) * 100
 
     def getAverageVolume(self, ticker):
-        return np.mean(self.data[ticker]["Volume"])
+        return yf.Ticker(ticker).info['averageVolume']
     
     def getVolumeNDaysAgo(self, ticker, days):
         return self.data[ticker]['Volume'][-days-1]
@@ -122,18 +124,13 @@ class OutsideDayDetector:
 
     def getDataDetectAndPrint(self):
         print('Getting all ticker data')
-        currentDate = datetime.datetime.strptime(
-            date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
-        pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
-        if self.marketsAreClosed():
-            currentDate = currentDate + dateutil.relativedelta.relativedelta(days=1)
         num_analyzed = 0
         num_failed = 0
         for ticker in tqdm(self.tickers):
             try:
                 num_analyzed += 1
                 sys.stdout = open(os.devnull, "w")
-                data = yf.download(ticker, pastDate, currentDate)
+                data = yf.Ticker(ticker).history(period="1mo")
                 sys.stdout = sys.__stdout__
             except:
                 num_failed += 1
