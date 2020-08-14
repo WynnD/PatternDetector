@@ -8,28 +8,33 @@ import yfinance as yf
 from tqdm import tqdm
 import sys
 import os
+import argparse
+from email.mime.text import MIMEText
+import smtplib
 
 from stocklist import NasdaqController
 
 class OutsideDayDetector:
-    def __init__(self, patterns):
+    def __init__(self):
         super().__init__()
-        self.patterns = patterns
         self.data = {}
         self.results = {}
-
+        self.outputString = ""
         StocksController = NasdaqController(True)
         self.tickers = StocksController.getList()
 
-    ''' for stock in list of stocks, get trading range (open to close) for two days ago and one day ago. 
-            if range on day T-1 surrounds day T-2 and volume is < 2 rel vol print the ticker along with trading range and vol vs relative vol.
-
-        functions:
-            getTradingRange(daysAgo) returns dict or tuple (open, close)
-            isBullish(range) returns whether the trading range is bullish (positive)
-            getRelativeVolume(numDays) returns the relative volume for the range given
-
-    '''
+        parser = argparse.ArgumentParser()
+        parser.add_argument('to_email', help='email address to send to')
+        parser.add_argument('from_email', help='email address to send from')
+        parser.add_argument('--patterns', nargs='*', help='patterns to analyze')
+        args = parser.parse_args()
+        print(args)
+        self.to_email = args.to_email
+        self.from_email = args.from_email
+        if args.patterns:
+            self.patterns = args.patterns
+        else:
+            self.patterns = ['outsideday']
 
     def detectOutsideDay(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
 
@@ -145,7 +150,8 @@ class OutsideDayDetector:
         
         print(f"{num_analyzed} tickers analyzed with {num_failed} failures")
 
-        self.printAllData()
+        self.renderOutput()
+        self.sendEmail()
 
     def marketsAreClosed(self):
         now = datetime.datetime.now()
@@ -194,19 +200,36 @@ class OutsideDayDetector:
             except:
                 print(f"Could not download data for ticker '{ticker}'")
 
-    def printData(self, data):
-        print(f"""Ticker: {data['ticker']}
+    def addOutputData(self, data):
+        self.outputString += f"""Ticker: {data['ticker']}
 Change: { (data['percent_change']):.2f}%
 Volume: {data['volume']}
 RelativeVol: {data['relative_vol']:.2f}
-""")
 
-    def printAllData(self):
+"""
+
+    def renderOutput(self):
         for pattern in self.results:
-            print(f"\n##### Tickers matching '{pattern}' pattern #####\n")
+            self.outputString +=(f"\n##### Tickers matching '{pattern}' pattern #####\n\n")
             for ticker in self.results[pattern]:
                 data = self.results[pattern][ticker]
-                self.printData(data)
+                self.addOutputData(data)
+
+    def sendEmail(self):
+        email = MIMEText(self.outputString)
+
+        email['Subject'] = 'Pattern Detector Report'
+        email['From'] = self.from_email
+        email['To'] = self.to_email
+
+        password_file = open('app_pass.txt', 'r')
+        password = password_file.read()
+        password_file.close()
+
+        s = smtplib.SMTP_SSL('smtp.gmail.com', port=465)
+        s.login(self.from_email, password)
+        s.sendmail(self.from_email, [self.to_email], email.as_string())
+        s.quit()
 
     def main(self):
         self.getDataDetectAndPrint()
@@ -219,5 +242,4 @@ RelativeVol: {data['relative_vol']:.2f}
 
 
 if __name__ == "__main__":
-    patterns = ['outsideday'] # in future, get patterns from command line
-    OutsideDayDetector(patterns).main()
+    OutsideDayDetector().main()

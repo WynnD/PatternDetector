@@ -134,3 +134,4 @@ data/
 *.code-workspace
 *.db
 *.db-journal
+app_pass.txt
