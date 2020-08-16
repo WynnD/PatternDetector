@@ -11,6 +11,8 @@ import os
 import argparse
 from email.mime.text import MIMEText
 import smtplib
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from stocklist import NasdaqController
 
@@ -104,9 +106,12 @@ class OutsideDayDetector:
         dayBeforeClose = self.data[ticker]['Close'][-days-2]
         return ((dayClose-dayBeforeClose)/dayBeforeClose) * 100
 
-    def getAverageVolume(self, ticker):
+    def pullAverageVolume(self, ticker):
         return yf.Ticker(ticker).info['averageVolume']
-    
+
+    def getAverageVolume(self, ticker):
+        return np.mean(self.data[ticker]["Volume"])
+
     def getVolumeNDaysAgo(self, ticker, days):
         return self.data[ticker]['Volume'][-days-1]
 
@@ -122,32 +127,43 @@ class OutsideDayDetector:
     def getLowPriceNDaysAgo(self, ticker, days):
         return self.data[ticker]['Low'][-days-1]
 
-    def getDataDetectAndPrint(self):
+    async def getDataDetectAndPrint(self):
         print('Getting all ticker data')
-        num_analyzed = 0
-        num_failed = 0
+        num_analyzed = num_failed = 0
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor(max_workers=15)
+        futures = []
         for ticker in tqdm(self.tickers):
+            futures.append(
+                loop.run_in_executor(executor, self.getData, ticker))
+
+        await asyncio.gather(*futures)
+
+        print("Analyzing all tickers")
+        num_failed = 0
+        for ticker in tqdm(self.data):
             try:
+                self.detectPatterns(ticker)
                 num_analyzed += 1
-                sys.stdout = open(os.devnull, "w")
-                data = yf.Ticker(ticker).history(period="2d")
-                sys.stdout = sys.__stdout__
             except:
                 num_failed += 1
-                continue
-            if not data.empty and len(data) > 1:
-                self.data[ticker] = data
-                outsideDayData = self.detectOutsideDay(ticker)
-                engulfingCandleData = self.detectEngulfingCandles(ticker)
-                if outsideDayData:
-                    self.insertResult('Outside Day', ticker, outsideDayData)
-                elif engulfingCandleData:
-                    self.insertResult('Engulfing Candle', ticker, engulfingCandleData)
-        
         print(f"{num_analyzed} tickers analyzed with {num_failed} failures")
 
         self.renderOutput()
         self.sendEmail()
+
+    def getData(self, ticker):
+        num_analyzed = 0
+        num_failed = 0
+        try:
+            num_analyzed += 1
+            sys.stdout = open(os.devnull, "w")
+            data = yf.Ticker(ticker).history(period="3mo")
+            sys.stdout = sys.__stdout__
+            if not data.empty and len(data) > 1:
+                self.data[ticker] = data
+        except:
+            num_failed += 1
 
     def marketsAreClosed(self):
         now = datetime.datetime.now()
@@ -169,32 +185,28 @@ class OutsideDayDetector:
             self.results[pattern] = {}
             self.results[pattern][ticker] = data
 
-    def detectPatterns(self):
-        self.results = {}
-        for ticker in self.data:
-            for pattern in self.patterns:
-                if pattern == 'outsideday':
-                    outsideDayData = self.detectOutsideDay(ticker)
-                    if outsideDayData:
-                        self.results[pattern][ticker] = outsideDayData
-                else:
-                    print("Unknown pattern")
+    def detectPatterns(self, ticker):
+        outsideDayData = self.detectOutsideDay(ticker)
+        engulfingCandleData = self.detectEngulfingCandles(ticker)
+        if outsideDayData:
+            self.insertResult('Outside Day', ticker, outsideDayData)
+        elif engulfingCandleData:
+            self.insertResult('Engulfing Candle', ticker, engulfingCandleData)
 
-
-    def getData(self, months=5):
-        print('Getting all ticker data')
-        currentDate = datetime.datetime.strptime(
-            date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
-        pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
-        for ticker in tqdm(self.tickers):
-            sys.stdout = open(os.devnull, "w")
-            try:
-                data = yf.download(ticker, pastDate, currentDate)
-                sys.stdout = sys.__stdout__
-                if not data.empty:
-                    self.data[ticker] = data
-            except:
-                print(f"Could not download data for ticker '{ticker}'")
+    # def getData(self, months=5):
+    #     print('Getting all ticker data')
+    #     currentDate = datetime.datetime.strptime(
+    #         date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
+    #     pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
+    #     for ticker in tqdm(self.tickers):
+    #         sys.stdout = open(os.devnull, "w")
+    #         try:
+    #             data = yf.download(ticker, pastDate, currentDate)
+    #             sys.stdout = sys.__stdout__
+    #             if not data.empty:
+    #                 self.data[ticker] = data
+    #         except:
+    #             print(f"Could not download data for ticker '{ticker}'")
 
     def addOutputData(self, data):
         self.outputString += f"""Ticker: {data['ticker']}
@@ -212,9 +224,11 @@ RelativeVol: {data['relative_vol']:.2f}
                 self.addOutputData(data)
 
     def sendEmail(self):
+        if self.outputString == '':
+            self.outputString = 'No patterns detected today'
         email = MIMEText(self.outputString)
-
-        email['Subject'] = 'Pattern Detector Report'
+        current_time = datetime.datetime.now()
+        email['Subject'] = f'Pattern Detector Report ({current_time.strftime("%m/%d/%Y")})'
         email['From'] = f'Pattern Detector <{self.from_email}>'
         email['To'] = self.to_email
 
@@ -227,15 +241,13 @@ RelativeVol: {data['relative_vol']:.2f}
         s.sendmail(self.from_email, [self.to_email], email.as_string())
         s.quit()
 
-    def main(self):
-        self.getDataDetectAndPrint()
-        # self.getData()
-        # currentDate = datetime.datetime.strptime(
-        #     date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
-        # startTime = time()
-        # self.detectPatterns()
-        # self.printData()
+    async def main(self):
+        start = datetime.datetime.now()
+        await self.getDataDetectAndPrint()
+        print(f'Runtime (HH:MM:SS.SSSSSS): {datetime.datetime.now()-start}')
 
 
 if __name__ == "__main__":
-    OutsideDayDetector().main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(OutsideDayDetector().main())
+    loop.close()
