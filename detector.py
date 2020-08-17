@@ -3,7 +3,7 @@ import datetime
 from datetime import date
 import dateutil.relativedelta
 import datetime
-from time import time
+from time import time, sleep
 import yfinance as yf
 from tqdm import tqdm
 import sys
@@ -155,11 +155,17 @@ class OutsideDayDetector:
     def getData(self, ticker):
         num_analyzed = 0
         num_failed = 0
+        data = None
         try:
             num_analyzed += 1
-            sys.stdout = open(os.devnull, "w")
+            delay = 1
+            # sys.stdout = open(os.devnull, "w")
             data = yf.Ticker(ticker).history(period="3mo")
-            sys.stdout = sys.__stdout__
+            while data.empty and delay < 8:
+                sleep(delay)
+                delay *= 2
+                data = yf.Ticker(ticker).history(period="3mo")
+            # sys.stdout = sys.__stdout__
             if not data.empty and len(data) > 1:
                 self.data[ticker] = data
         except:
