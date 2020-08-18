@@ -131,13 +131,13 @@ class OutsideDayDetector:
         print('Getting all ticker data')
         num_analyzed = num_failed = 0
         loop = asyncio.get_event_loop()
-        executor = ThreadPoolExecutor(max_workers=15)
+        executor = ThreadPoolExecutor(max_workers=50)
         futures = []
-        for ticker in tqdm(self.tickers):
+        for ticker in self.tickers:
             futures.append(
                 loop.run_in_executor(executor, self.getData, ticker))
-
-        await asyncio.gather(*futures)
+        [await f for f in tqdm(asyncio.as_completed(futures), total=len(futures))]
+        # await asyncio.gather(*futures)
 
         print("Analyzing all tickers")
         num_failed = 0
@@ -153,23 +153,24 @@ class OutsideDayDetector:
         self.sendEmail()
 
     def getData(self, ticker):
-        num_analyzed = 0
-        num_failed = 0
         data = None
+        if '$' in ticker or '.' in ticker:
+            return
         try:
-            num_analyzed += 1
             delay = 1
-            # sys.stdout = open(os.devnull, "w")
-            data = yf.Ticker(ticker).history(period="3mo")
-            while data.empty and delay < 8:
+            sys.stdout = open(os.devnull, "w")
+            data = yf.Ticker(ticker).history(period="4mo")
+            while data.empty and delay < 16:
                 sleep(delay)
                 delay *= 2
-                data = yf.Ticker(ticker).history(period="3mo")
-            # sys.stdout = sys.__stdout__
+                data = yf.Ticker(ticker).history(period="4mo")
+            sys.stdout = sys.__stdout__
             if not data.empty and len(data) > 1:
+                if not self.marketsAreClosed():
+                    data = data[:-1]
                 self.data[ticker] = data
         except:
-            num_failed += 1
+            pass
 
     def marketsAreClosed(self):
         now = datetime.datetime.now()
@@ -224,7 +225,7 @@ RelativeVol: {data['relative_vol']:.2f}
 
     def renderOutput(self):
         for pattern in self.results:
-            self.outputString +=(f"\n##### Tickers matching '{pattern}' pattern #####\n\n")
+            self.outputString +=(f"\nTickers matching '{pattern}' pattern\n\n")
             for ticker in self.results[pattern]:
                 data = self.results[pattern][ticker]
                 self.addOutputData(data)
