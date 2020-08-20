@@ -201,21 +201,6 @@ class OutsideDayDetector:
         elif engulfingCandleData:
             self.insertResult('Engulfing Candle', ticker, engulfingCandleData)
 
-    # def getData(self, months=5):
-    #     print('Getting all ticker data')
-    #     currentDate = datetime.datetime.strptime(
-    #         date.today().strftime("%Y-%m-%d"), "%Y-%m-%d")
-    #     pastDate = currentDate - dateutil.relativedelta.relativedelta(months=4)
-    #     for ticker in tqdm(self.tickers):
-    #         sys.stdout = open(os.devnull, "w")
-    #         try:
-    #             data = yf.download(ticker, pastDate, currentDate)
-    #             sys.stdout = sys.__stdout__
-    #             if not data.empty:
-    #                 self.data[ticker] = data
-    #         except:
-    #             print(f"Could not download data for ticker '{ticker}'")
-
     def addOutputData(self, data):
         self.outputString += f"""Ticker: {data['ticker']}
 Change: { (data['percent_change']):.2f}%
@@ -256,6 +241,9 @@ RelativeVol: {data['relative_vol']:.2f}
 
 
 if __name__ == "__main__":
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(OutsideDayDetector().main())
     loop.close()
