@@ -22,6 +22,7 @@ class OutsideDayDetector:
         self.data = {}
         self.results = {}
         self.outputString = ""
+        self.marketsClosed = self.marketsAreClosed()
         StocksController = NasdaqController(True)
         self.tickers = StocksController.getList()
 
@@ -166,7 +167,7 @@ class OutsideDayDetector:
                 data = yf.Ticker(ticker).history(period="4mo")
             sys.stdout = sys.__stdout__
             if not data.empty and len(data) > 1:
-                if not self.marketsAreClosed():
+                if not self.marketsClosed:
                     data = data[:-1]
                 self.data[ticker] = data
         except:
