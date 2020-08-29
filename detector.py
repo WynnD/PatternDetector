@@ -16,6 +16,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from stocklist import NasdaqController
 
+COMMASPACE = ', '
+
 class OutsideDayDetector:
     def __init__(self):
         super().__init__()
@@ -27,8 +29,8 @@ class OutsideDayDetector:
         self.tickers = StocksController.getList()
 
         parser = argparse.ArgumentParser()
-        parser.add_argument('to_email', help='email address to send to')
         parser.add_argument('from_email', help='email address to send from')
+        parser.add_argument('to_email', nargs='*', help='email address to send to')
         parser.add_argument('--patterns', nargs='*', help='patterns to analyze')
         args = parser.parse_args()
         self.to_email = args.to_email
@@ -223,7 +225,7 @@ RelativeVol: {data['relative_vol']:.2f}
         current_time = datetime.datetime.now()
         email['Subject'] = f'Pattern Detector Report ({current_time.strftime("%m/%d/%Y")})'
         email['From'] = f'Pattern Detector <{self.from_email}>'
-        email['To'] = self.to_email
+        email['To'] = COMMASPACE.join(self.to_email)
 
         password_file = open('app_pass.txt', 'r')
         password = password_file.read()
@@ -231,7 +233,7 @@ RelativeVol: {data['relative_vol']:.2f}
 
         s = smtplib.SMTP_SSL('smtp.gmail.com', port=465)
         s.login(self.from_email, password)
-        s.sendmail(self.from_email, [self.to_email], email.as_string())
+        s.sendmail(self.from_email, self.to_email, email.as_string())
         s.quit()
 
     async def main(self):
