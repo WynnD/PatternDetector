@@ -2,7 +2,7 @@ FROM python:3.6.12-alpine3.12
 
 COPY . .
 
-RUN apk update && apk add py3-libxml2
+RUN apk update && apk add py3-libxml2 libxslt libxslt-dev
 
 RUN pip install -r requirements.txt
 
