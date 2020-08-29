@@ -2,7 +2,7 @@ FROM python:3.8
 
 COPY . .
 
-RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+RUN mkdir -p /etc/apk && echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
 RUN apk --no-cache --update add py3-libxml2 libxml2-dev libxslt-dev py3-numpy
 
