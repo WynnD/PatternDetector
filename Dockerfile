@@ -8,7 +8,7 @@ RUN apk --no-cache --update add py3-numpy
 
 ENV PYTHONPATH=/usr/lib/python3.8/site-packages
 
-RUN grep -v requirements.txt "numpy" > requirements.txt
+RUN grep -v "numpy" requirements.txt > requirements.txt
 
 RUN pip install -r requirements.txt
 
