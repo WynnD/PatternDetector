@@ -4,9 +4,11 @@ COPY . .
 
 RUN mkdir -p /etc/apk && echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
-RUN apk --no-cache --update add py3-libxml2 libxml2-dev libxslt-dev py3-numpy
+RUN apk --no-cache --update add py3-numpy
 
 ENV PYTHONPATH=/usr/lib/python3.8/site-packages
+
+RUN grep -v requirements.txt "numpy" > requirements.txt
 
 RUN pip install -r requirements.txt
 
