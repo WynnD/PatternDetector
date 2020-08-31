@@ -1,7 +1,5 @@
 FROM epicwynn/pd-base:latest-arm
 
-COPY qemu-arm-static /usr/bin/
-
 ARG GMAIL_PASS
 
 ENV GMAIL_PASS=${GMAIL_PASS}
