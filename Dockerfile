@@ -1,4 +1,4 @@
-FROM epicwynn/pd-base:latest-arm
+FROM epicwynn/pd-base:latest
 
 ARG GMAIL_PASS
 
