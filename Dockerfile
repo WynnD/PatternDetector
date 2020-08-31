@@ -16,4 +16,4 @@ RUN pip install -r requirements.txt
 
 RUN echo $GMAIL_PASS > app_pass.txt
 
-ENTRYPOINT ["python", "./detector.py", "$FROM_EMAIL", "$TO_EMAILS"]
+ENTRYPOINT ["entrypoint.sh"]
