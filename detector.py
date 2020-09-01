@@ -227,14 +227,21 @@ RelativeVol: {data['relative_vol']:.2f}
         email['From'] = f'Pattern Detector <{self.from_email}>'
         email['To'] = COMMASPACE.join(self.to_email)
 
-        password_file = open('app_pass.txt', 'r')
-        password = password_file.read()
-        password_file.close()
+        email_password = self.getEmailPass()
 
         s = smtplib.SMTP_SSL('smtp.gmail.com', port=465)
-        s.login(self.from_email, password)
+        s.login(self.from_email, email_password)
         s.sendmail(self.from_email, self.to_email, email.as_string())
         s.quit()
+
+    def getEmailPass(self):
+        try:
+            return os.environ['EMAIL_PASS']
+        except:
+            password_file = open('app_pass.txt', 'r')
+            password = password_file.read()
+            password_file.close()
+            return password
 
     async def main(self):
         start = datetime.datetime.now()
