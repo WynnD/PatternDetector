@@ -6,41 +6,18 @@ import datetime
 from time import time, sleep
 import yfinance as yf
 from tqdm import tqdm
-import sys
-import os
-import argparse
-from email.mime.text import MIMEText
-import smtplib
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
-from stocklist import NasdaqController
+from .helpers import *
 
-COMMASPACE = ', '
-
-class OutsideDayDetector:
-    def __init__(self):
+class Detector:
+    def __init__(self, tickers):
         super().__init__()
         self.data = {}
         self.results = {}
-        self.outputString = ""
-        self.marketsClosed = self.marketsAreClosed()
-        StocksController = NasdaqController(True)
-        self.tickers = StocksController.getList()
+        self.marketsClosed = marketsAreClosed()
+        self.tickers = tickers
 
-        parser = argparse.ArgumentParser()
-        parser.add_argument('from_email', help='email address to send from')
-        parser.add_argument('to_email', nargs='*', help='email address to send to')
-        parser.add_argument('--patterns', nargs='*', help='patterns to analyze')
-        args = parser.parse_args()
-        self.to_email = args.to_email
-        self.from_email = args.from_email
-        if args.patterns:
-            self.patterns = args.patterns
-        else:
-            self.patterns = ['outsideday']
-
-    def detectOutsideDay(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
+    def detect(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
 
         percentChangeYesterday = self.getPercentChangeNDaysAgo(ticker, days=0)
 
@@ -109,9 +86,6 @@ class OutsideDayDetector:
         dayBeforeClose = self.data[ticker]['Close'][-days-2]
         return ((dayClose-dayBeforeClose)/dayBeforeClose) * 100
 
-    def pullAverageVolume(self, ticker):
-        return yf.Ticker(ticker).info['averageVolume']
-
     def getAverageVolume(self, ticker):
         return np.mean(self.data[ticker]["Volume"])
 
@@ -154,26 +128,6 @@ class OutsideDayDetector:
 
         self.renderOutput()
         self.sendEmail()
-
-    def getData(self, ticker):
-        data = None
-        if '$' in ticker or '.' in ticker:
-            return
-        try:
-            delay = 1
-            sys.stdout = open(os.devnull, "w")
-            data = yf.Ticker(ticker).history(period="4mo")
-            while data.empty and delay < 16:
-                sleep(delay)
-                delay *= 2
-                data = yf.Ticker(ticker).history(period="4mo")
-            sys.stdout = sys.__stdout__
-            if not data.empty and len(data) > 1:
-                if not self.marketsClosed:
-                    data = data[:-1]
-                self.data[ticker] = data
-        except:
-            pass
 
     def marketsAreClosed(self):
         now = datetime.datetime.now()
