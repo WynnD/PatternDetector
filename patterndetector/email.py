@@ -3,11 +3,16 @@ from email.mime.text import MIMEText
 import smtplib
 import os
 
+from patterndetector.result import Results
+
 COMMASPACE = ', '
 
 class EmailGenerator:
-    def __init__(self, outputString):
-        self.outputString = outputString
+    def __init__(self, results: Results):
+        self.results = results
+        self.getEmailPass()
+        self.outputString = ''
+        self.renderOutput()
 
     def sendEmail(self, from_email, to_emails):
         if self.outputString == '':
@@ -24,6 +29,21 @@ class EmailGenerator:
         s.login(from_email, email_password)
         s.sendmail(from_email, to_emails, email.as_string())
         s.quit()
+
+    def addDataToOutput(self, data):
+            self.outputString += f"""Ticker: {data['ticker']}
+    Change: { (data['percent_change']):.2f}%
+    Volume: {data['volume']}
+    RelativeVol: {data['relative_vol']:.2f}
+
+    """
+
+    def renderOutput(self):
+        results = self.results.getAllResults()
+        for pattern in results:
+            self.outputString +=(f"\nTickers matching '{pattern}' pattern\n\n")
+            for data in results[pattern].values():
+                self.addDataToOutput(data)
 
     def getEmailPass(self):
         try:

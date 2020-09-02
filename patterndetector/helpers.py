@@ -3,7 +3,7 @@ from datetime import datetime
 def isPositiveDay(openPrice, closePrice):
     return openPrice < closePrice
 
-def marketsAreClosed():
+def isMarketClosed():
     current = datetime.now()
     # monday is 0 sunday is 6 
     day = current.weekday()
