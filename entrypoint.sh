@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python ./detector.py $FROM_EMAIL $TO_EMAILS
+python ./pattern_detector.py $FROM_EMAIL $TO_EMAILS
