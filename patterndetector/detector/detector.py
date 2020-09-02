@@ -12,7 +12,7 @@ class Detector(ABC):
     def name(self):
         pass
 
-    def detect(self, ticker, relativeVolThreshold=2, volumeThreshold=200000):
+    def detect(self, ticker, relativeVolThreshold=1.5, volumeThreshold=200000):
 
         percentChangeYesterday = self.data.getPercentChangeNDaysAgo(ticker, days=0)
 
@@ -29,6 +29,8 @@ class Detector(ABC):
                     'volume': volume,
                     'relative_vol': relativeVol
                 }
+            else:
+                return False
         else: 
             return False
 
