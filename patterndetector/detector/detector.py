@@ -12,7 +12,10 @@ class Detector(ABC):
     def name(self):
         pass
 
-    def detect(self, ticker, relativeVolThreshold=1.5, volumeThreshold=200000):
+    def detect(self, ticker, priceThreshold=5, relativeVolThreshold=1.5, volumeThreshold=200000):
+
+        if self.data.getOpeningPriceNDaysAgo(ticker, days=0) < priceThreshold:
+            return False
 
         percentChangeYesterday = self.data.getPercentChangeNDaysAgo(ticker, days=0)
 
