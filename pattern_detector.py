@@ -16,7 +16,7 @@ class PatternDetector:
         super().__init__()
         self.results = Results()
         self.data = Data()
-        self.detectors = [EngulfingCandleDetector(self.data), OutsideDayDetector(self.data)]
+        self.detectors = [OutsideDayDetector(self.data)] # EngulfingCandleDetector(self.data)
 
         parser = ArgumentParser()
         parser.add_argument('from_email', help='email address to send from')
